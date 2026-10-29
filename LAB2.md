@@ -59,7 +59,7 @@ fsync 耗时（毫秒）：mean 1.465  p50 1.339  p90 1.739  p99 4.453  max 5.98
 
 ## 3. 任务 1：指标流水线
 
-两个抓取目标的状态（`curl -s 127.0.0.1:9090/api/v1/targets` 中两处 `"health"` 的值）：`up`、`up`（enrolld 与 node_exporter 两个目标均正常）
+两个抓取目标的状态（`curl -s 127.0.0.1:9090/api/v1/targets` 中两处 `"health"` 的值，实测于 2026-10-29 00:00，属状态项非数值）：`up`、`up`（enrolld 与 node_exporter 两个目标均正常）
 
 本组编写的四条查询（与 `deploy/queries-red.txt` 一致）：
 
@@ -79,7 +79,7 @@ server_slo_good     sum(rate(http_request_duration_seconds_bucket{route="${route
 | 3 | 100 | 97.8 | 11.58 | 13.97 | 95.9583 | 10.8815 | 19.9 | 0.515203 | 10.4306 |
 | all | - | 74.2 | 11.53 | 13.47 | - | - | - | - | - |
 
-从这次实验读出：每次查询实际占用连接 10.43 ms（`db_query_mean_ms`）；每个请求消耗的 CPU 0.515 ms（`cpu_ms_per_req`，取 100 请求/秒的阶段）。
+从这次实验读出：每次查询实际占用连接 10.43 ms（`db_query_mean_ms`，出自 `runs/t1-light/red.csv` 第 3 阶段，原值 10.4306）；每个请求消耗的 CPU 0.515 ms（`cpu_ms_per_req`，出自 `runs/t1-light/red.csv` 第 3 阶段，原值 0.515203，即 100 请求/秒的阶段）。
 
 ## 4. 任务 2：读路径
 

@@ -1,0 +1,24 @@
+File: enrolld
+Build ID: 27680f1cc03829f04664dee39f8257a593edb958
+Type: cpu
+Time: 2026-10-29 20:58:25 CST
+Duration: 20s, Total samples = 2.72s (13.60%)
+Showing nodes accounting for 2.56s, 94.12% of 2.72s total
+Dropped 55 nodes (cum <= 0.01s)
+Showing top 15 nodes out of 45
+      flat  flat%   sum%        cum   cum%
+     2.38s 87.50% 87.50%      2.38s 87.50%  main.spin (inline)
+     0.12s  4.41% 91.91%      0.12s  4.41%  internal/runtime/syscall/linux.Syscall6
+     0.02s  0.74% 92.65%      0.02s  0.74%  runtime.memclrNoHeapPointers
+     0.01s  0.37% 93.01%      0.02s  0.74%  bufio.(*Reader).fill
+     0.01s  0.37% 93.38%      0.02s  0.74%  internal/runtime/maps.(*Map).growToSmall
+     0.01s  0.37% 93.75%      0.08s  2.94%  internal/runtime/syscall/linux.EpollWait
+     0.01s  0.37% 94.12%      0.02s  0.74%  runtime.convT
+         0     0% 94.12%      0.02s  0.74%  bufio.(*Reader).Peek
+         0     0% 94.12%      0.06s  2.21%  bufio.(*Writer).Flush
+         0     0% 94.12%      0.03s  1.10%  encoding/json.(*Encoder).Encode
+         0     0% 94.12%      0.02s  0.74%  encoding/json/jsontext.export.GetBufferedEncoder (inline)
+         0     0% 94.12%      0.02s  0.74%  encoding/json/jsontext.getBufferedEncoder
+         0     0% 94.12%      0.04s  1.47%  internal/poll.(*FD).Write
+         0     0% 94.12%      0.05s  1.84%  internal/poll.ignoringEINTRIO (inline)
+         0     0% 94.12%      2.44s 89.71%  main.(*server).handleCourse

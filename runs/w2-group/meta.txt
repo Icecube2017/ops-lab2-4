@@ -1,0 +1,28 @@
+名字: w2-group
+开始: 2026-10-30T08:31:04+08:00
+主机: Linux 6.8.0-136-generic x86_64
+CPU: 2 个逻辑核；General Purpose Processor
+内存: 1775 MiB，available 1211 MiB
+数据目录: data → /dev/vda1（ext4），统计的磁盘: vda
+enrolld: pid 763337，绑定的核 1
+loadgen: 绑定的核 0
+接口: /api/enroll；SLO 阈值 0.02s
+promsteps 变量: route=/api/enroll slo=0.02 cpus=1 disk=vda
+仓库提交: 900f0d6，未提交的改动 2 处
+压测命令: bin/loadgen '-url' 'http://127.0.0.1:8080/api/enroll' '-body' '{"student":"s{{seq}}","course":"c1"}' '-rates' '269,538,673,1010,1346,2019,2692'
+enrolld /config:
+{
+  "addr": "127.0.0.1:8080",
+  "work": 200000,
+  "pool": 4,
+  "db_ms": 10,
+  "pool_timeout": "1s",
+  "sync": "group",
+  "sync_interval": "1s",
+  "data": "data",
+  "go_version": "go1.27.3",
+  "gomaxprocs": 1,
+  "gogc": "",
+  "pid": 763337,
+  "started": "2026-10-30T08:30:14+08:00"
+}

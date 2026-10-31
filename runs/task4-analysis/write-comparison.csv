@@ -1,0 +1,4 @@
+run,sync,max_ok_step,target_rps,max_ok_rps,client_mean_ms,client_p99_ms,cpu_cores,fsync_per_s,fsync_mean_ms,batch_mean,device_writes_per_app_fsync,device_flushes_per_app_fsync,mem_available_min_mb,swap_in_per_s,svc_cpu_busy,cpu_iowait,disk_w_per_s,disk_w_await_ms,disk_f_per_s,disk_f_await_ms,disk_aqu_sz,disk_util
+w1-each,each,6,673.0,668.4,139.87,389.23,0.0729308,669.375,1.45686,1.0,2.987264239028945,1.98984126984127,1196.57,0.0,0.083,0.42275,1999.6,0.471244,1331.95,0.0404294,0.99615,0.93475
+w2-group,group,7,2692.0,2683.2,3.09,7.46,0.123376,638.083,1.53844,4.20844,3.004468070768223,2.0009936011459324,1204.18,0.0,0.137,0.391,1917.1,0.493845,1276.8,0.0460918,1.0056,0.93815
+w3-interval,interval,3,2692.0,2683.7,0.6,1.25,0.101556,1.0,3.27338,2689.17,4.3,2.0,1210.68,0.0,0.1265,0.00125,4.3,0.918605,2.0,0.025,0.004,0.003

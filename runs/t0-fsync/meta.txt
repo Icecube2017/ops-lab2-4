@@ -1,0 +1,10 @@
+名字: t0-fsync
+开始: 2026-11-02T16:34:53+08:00
+主机: Linux 6.8.0-136-generic x86_64
+CPU: 2 个逻辑核；General Purpose Processor
+内存: 1775 MiB
+数据目录: data → /dev/vda1（ext4），统计的磁盘: vda
+基线命令: for i in 1 2 3; do bin/enrolld -bench-fsync 2000; done
+观察命令: vmstat -t -w 1；iostat -d -x -t vda 1
+观察时序: 空载 10s → bin/enrolld -bench-fsync 5000 → 空载 10s
+仓库提交: 833c280，未提交的改动 3 处

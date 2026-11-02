@@ -20,40 +20,44 @@
 
 ## 2. 任务 0：基线
 
-`bin/enrolld -bench-fsync 2000` 连续运行三次的输出：
+`bin/enrolld -bench-fsync 2000` 连续运行三次的输出（2026-11-02 在 ecs-e0a4 上实测，原文见 `runs/t0-fsync/fsync-bench.log`）：
 
 ```text
-root@ecs-e0a4:/home/sample/ipd_labs/lab2# for i in 1 2 3; do bin/enrolld -bench-fsync 2000; done
-fsync 次数 2000，总耗时 3.04 s，数据目录 data
-fsync 耗时（毫秒）：mean 1.512  p50 1.351  p90 1.810  p99 4.862  max 10.069
-按平均值推算，一个写者串行 fsync 每秒最多约 662 次（= 1000 / 1.512）
-fsync 次数 2000，总耗时 2.98 s，数据目录 data
-fsync 耗时（毫秒）：mean 1.485  p50 1.341  p90 1.791  p99 4.692  max 6.250
-按平均值推算，一个写者串行 fsync 每秒最多约 673 次（= 1000 / 1.485）
-fsync 次数 2000，总耗时 2.94 s，数据目录 data
-fsync 耗时（毫秒）：mean 1.465  p50 1.339  p90 1.739  p99 4.453  max 5.984
-按平均值推算，一个写者串行 fsync 每秒最多约 682 次（= 1000 / 1.465）
+=== 第 1 次：bin/enrolld -bench-fsync 2000 ===
+fsync 次数 2000，总耗时 3.07 s，数据目录 data
+fsync 耗时（毫秒）：mean 1.530  p50 1.367  p90 1.825  p99 4.839  max 13.017
+按平均值推算，一个写者串行 fsync 每秒最多约 654 次（= 1000 / 1.530）
+=== 第 2 次：bin/enrolld -bench-fsync 2000 ===
+fsync 次数 2000，总耗时 2.97 s，数据目录 data
+fsync 耗时（毫秒）：mean 1.476  p50 1.349  p90 1.736  p99 3.978  max 10.021
+按平均值推算，一个写者串行 fsync 每秒最多约 678 次（= 1000 / 1.476）
+=== 第 3 次：bin/enrolld -bench-fsync 2000 ===
+fsync 次数 2000，总耗时 3.06 s，数据目录 data
+fsync 耗时（毫秒）：mean 1.524  p50 1.382  p90 1.837  p99 4.434  max 9.739
+按平均值推算，一个写者串行 fsync 每秒最多约 656 次（= 1000 / 1.524）
 ```
 
-按平均值计算，单个写者串行 fsync 每秒最多约 673 次。三次之间相差20。
+按平均值计算，单个写者串行 fsync 每秒最多约 662 次：三次均值 (1.530+1.476+1.524)/3 = 1.510 ms，1000 / 1.510 = 662.3。三次各自的推算值是 654、678、656 次/秒，极差 24 次/秒（约 ±1.8%）——基线本身就有约 2% 的复现波动，后面比较 W1、W2 时，不能把 1% 量级的差别当成结论。
 
-空载和运行 fsync 测试时各工具的读数（各观察 5 秒以上，填写典型值）：
+负载阶段的观察另跑了一次 `bin/enrolld -bench-fsync 5000`（`runs/t0-fsync/fsync-bench-5000.log`）：5000 次、7.59 s，mean 1.509 ms、约 662 次/秒，与三次 2000 次的结果一致。下表的资源读数取自这一段：`runs/t0-fsync/phases.csv` 记录空载 10 s → `-bench-fsync 5000` → 空载 10 s，`vmstat.log`、`iostat.log` 每秒一行。
+
+空载和运行 fsync 测试时各工具的读数（各观察 5 秒以上，填写典型值；两份日志的第一个采样点不是完整的 1 秒区间——`iostat` 首行是自启动以来的累计值，故统计从第二个采样点起算：空载取 16:35:08～16:35:16 共 9 秒，负载取 16:35:18～16:35:24 共 7 秒）：
 
 | 工具与列 | 空载 | 运行 `-bench-fsync` 时 | 该列的含义 |
 |---|---|---|---|
 | `vmstat -w 1`：r、b | 0, 0 | 0, 1 | 可运行的进程数；处于不可中断睡眠的进程数 |
-| `vmstat -w 1`：us、sy、id、wa、st | 0, 1, 99, 0, 0  | 1, 3, 50, 47, 0 | 用户态、内核态、空闲、等待 I/O、被 hypervisor 偷走的 CPU 时间占比 |
-| `iostat -dx 1 vda`：w/s、wkB/s | 2.00, 8.00 | 2000, 11000 | 每秒完成的写请求数；每秒写入的数据量 |
-| `iostat -dx 1 vda`：w_await、f/s、f_await | 0.00, 0.00, 0.00 | 0.48, 1330, 0.04 | 写请求的平均响应时间；每秒 flush 请求数；flush 请求的平均响应时间 |
-| `iostat -dx 1 vda`：aqu-sz、%util | 0.00, 0.00 | 1.01, 95.50 | 平均未完成请求数；设备忙碌时间占比 |
+| `vmstat -w 1`：us、sy、id、wa、st | 0, 1, 99, 0, 0  | 1, 3, 49, 47, 0 | 用户态、内核态、空闲、等待 I/O、被 hypervisor 偷走的 CPU 时间占比 |
+| `iostat -dx 1 vda`：w/s、wkB/s | 0.00, 0.00 | 1980, 10800 | 每秒完成的写请求数；每秒写入的数据量 |
+| `iostat -dx 1 vda`：w_await、f/s、f_await | 0.00, 0.00, 0.00 | 0.49, 1318, 0.03 | 写请求的平均响应时间；每秒 flush 请求数；flush 请求的平均响应时间 |
+| `iostat -dx 1 vda`：aqu-sz、%util | 0.00, 0.00 | 1.01, 95.7 | 平均未完成请求数；设备忙碌时间占比 |
 
-运行 fsync 测试时，CPU 是否繁忙？**不繁忙。** `us` 1% + `sy` 3% = 4%，`id` 50%，`st` 0：真正执行指令的时间只有约 4%，CPU 有大量余量，远未饱和；另 47% 是 `wa`（iowait），即 CPU 空闲、只是在等未完成的磁盘 I/O，这部分不能算作“CPU 忙”。与空载（us+sy ≈ 1%）相比，`sy` 从 1% 升到 3%，是 fsync 系统调用和提交 I/O 的开销，量级仍很小。
+运行 fsync 测试时，CPU 是否繁忙？**不繁忙。** `us` 1% + `sy` 3% = 4%，`id` 49%，`st` 0：真正执行指令的时间只有约 4%，CPU 有大量余量，远未饱和；另 47% 是 `wa`（iowait），即 CPU 空闲、只是在等未完成的磁盘 I/O，这部分不能算作“CPU 忙”。与空载（`us`+`sy` ≈ 1%）相比，`sy` 从 1% 升到 3%，是 fsync 系统调用和提交 I/O 的开销，量级仍很小。另外“空载”并非绝对静止：9 个采样点里 8 个 `w/s` ≤ 4，只有 16:35:12 出现过一次 46 次写、208 kB 的后台 I/O 突发（`util` 0.90%）；空载一列取最常见的读数 0。
 
 表明存在等待的列：
 
 - `vmstat`：`wa` 47%，近一半采样时间里 CPU 在等 I/O；`b` 1，有一个进程处于不可中断睡眠（D）状态，正是在等 fsync 返回；`r` 0，没有进程排队等 CPU，说明瓶颈不在 CPU 而在磁盘。
-- `iostat`：`%util` 95.5%，vda 几乎整个采样周期都有请求在处理；`aqu-sz` 1.01，平均约有 1 个请求在队列/设备中，与“单写者串行 fsync”一次只有一个未完成 I/O 相符；`w_await` 0.48 ms、`f_await` 0.04 ms，说明单次 I/O 本身很快，时间主要花在等设备确认落盘，而不是 CPU 计算。
-- 写量也自洽：`w/s` 2000 × 约 5.5 kB ≈ `wkB/s` 11000；`f/s` 1330 约为 `w/s` 2000 的 2/3，即平均约 1.5 次写伴随 1 次 flush，正是 ext4 日志提交的写放大。
+- `iostat`：`%util` 95.7%，vda 几乎整个采样周期都有请求在处理；`aqu-sz` 1.01，平均约有 1 个请求在队列/设备中，与“单写者串行 fsync”一次只有一个未完成 I/O 相符；`w_await` 0.49 ms、`f_await` 0.03 ms，说明单次 I/O 本身很快，时间主要花在等设备确认落盘，而不是 CPU 计算。
+- 写量也自洽：`w/s` 1980 × 约 5.46 kB（`wareq-sz`）≈ `wkB/s` 10800；`f/s` 1318 约为 `w/s` 1980 的 2/3，即平均约 1.5 次写伴随 1 次 flush，正是 ext4 日志提交的写放大。与 fsync 次数对照更直接：同期 fsync 约 659 次/秒（5000 次 / 7.59 s），故每次 fsync 约对应 3.0 次写（1980 / 659）、2.0 次 flush（1318 / 659）。
 
 结论：这是 I/O 等待型负载，不是 CPU 密集型负载。判断“CPU 忙不忙”看 `us`+`sy`；判断“在等什么”看 `wa`、`b`、`%util`、`aqu-sz`。
 
@@ -204,7 +208,7 @@ scripts/table.sh runs/r2-pool44 ok_rps error_rate p99_ms server_p99_ms inflight_
 
 ### 5.2 W1：`-sync each`
 
-`scripts/table.sh runs/w1-<…> ok_rps error_rate p99_ms server_p99_ms cpu_cores fsync_per_s fsync_mean_ms batch_mean svc_cpu_busy cpu_iowait disk_w_per_s disk_w_await_ms disk_f_per_s disk_f_await_ms disk_aqu_sz disk_util`：
+`scripts/table.sh runs/w1-each ok_rps error_rate p99_ms server_p99_ms cpu_cores fsync_per_s fsync_mean_ms batch_mean svc_cpu_busy cpu_iowait disk_w_per_s disk_w_await_ms disk_f_per_s disk_f_await_ms disk_aqu_sz disk_util`：
 
 | step | target_rps | ok_rps | error_rate | p99_ms  | server_p99_ms | cpu_cores | fsync_per_s | fsync_mean_ms | batch_mean | svc_cpu_busy | cpu_iowait | disk_w_per_s | disk_w_await_ms | disk_f_per_s | disk_f_await_ms | disk_aqu_sz | disk_util |
 | ---- | ---------- | ------ | ---------- | ------- | ------------- | --------- | ----------- | ------------- | ---------- | ------------ | ---------- | ------------ | --------------- | ------------ | --------------- | ----------- | --------- |
@@ -291,7 +295,7 @@ Little 定律要求同一边界、近似稳态的长期平均，W 必须是所�
 
 **问题 3：持久性以延迟为代价。** W1 实测的最大 TPS 与 1000 ÷ fsync 平均耗时相比如何？W1 达到上限时 CPU、内存、磁盘的指标各是多少，哪几列表明磁盘饱和？应用测得的 `fsync_mean_ms` 与 `disk_w_await_ms`、`disk_f_await_ms` 为什么不同？一次 fsync 大约对应几次写和几次 flush？W1 与 W2 在 `disk_util` 相近时吞吐量相差多少，`%util` 接近 100% 能否说明磁盘已经饱和？组提交的 `batch_mean` 如何随负载变化，低负载时是否有收益，本组的预测是否正确？W3 快了多少，代价是什么？选课记录应采用哪一种方式，在什么条件下 interval 可以接受？
 
-所用数据：`runs/w1-each/{steps,red,use}.csv` 第 2、6～8 阶段，`runs/w2-group/{steps,red,use}.csv` 第 1、3、7 阶段，`runs/w3-interval/{steps,red,use}.csv` 第 3 阶段及各自 `meta.txt`；基线与旧预测原文在 `runs/task4-analysis/task3-source-LAB2.md` 第 2、5.3 节，文件原样归档，未作事后修订。以下摘录各实验最大已测成功吞吐阶段，复算见 `write-comparison.csv`、`write-matched-loads.csv` 与 `summary.json` 的 `write_analysis`：
+所用数据：`runs/w1-each/{steps,red,use}.csv` 第 2、6～8 阶段，`runs/w2-group/{steps,red,use}.csv` 第 1、3、7 阶段，`runs/w3-interval/{steps,red,use}.csv` 第 3 阶段及各自 `meta.txt`；旧基线（1.487 ms，见归档转录）与旧预测原文在 `runs/task4-analysis/task3-source-LAB2.md` 第 2、5.3 节，文件原样归档，未作事后修订；基线复测数据在 `runs/t0-fsync/fsync-bench.log`，口径以 2 节为准（`runs/task4-analysis/summary.json` 的 `write_analysis` 是复测前生成的，仍用旧基线，本次未重新生成）。以下摘录各实验最大已测成功吞吐阶段，复算见 `write-comparison.csv`、`write-matched-loads.csv` 与 `summary.json` 的 `write_analysis`：
 
 | 实验与阶段 | 目标 RPS | 成功 TPS | 客户端均值（ms） | 客户端 p99（ms） | fsync/s | fsync 均值（ms） | batch 均值 | disk_util |
 |---|---|---|---|---|---|---|---|---|
@@ -299,7 +303,7 @@ Little 定律要求同一边界、近似稳态的长期平均，W 必须是所�
 | W2 group，第 7 阶段 | 2692 | 2683.2 | 3.09 | 7.46 | 638.083 | 1.53844 | 4.20844 | 0.93815 |
 | W3 interval，第 3 阶段 | 2692 | 2683.7 | 0.60 | 1.25 | 1 | 3.27338 | 2689.17 | 0.003 |
 
-结论与成立条件：三次基线 fsync 均值为 1.487333 ms，推算 672.34 TPS，W1 最大成功吞吐 668.4 TPS，低约 0.59%。该阶段进程占 0.07293 核、服务核忙 8.3%，可用内存至少 1196.57 MiB、换入为零；整机 iowait 42.275%、磁盘队列 0.99615、util 93.475%。继续加压时 fsync 速率仍在约 669～672/s，而超时和在途队列激增，说明串行持久化路径饱和，不是 CPU 或内存不足。应用 fsync 均值 1.45686 ms 包含文件系统日志、系统调用及完成后的调度，块写 await 0.471244 ms、flush await 0.0404294 ms 只计各自块请求；两者不能相加代替一次 fsync。用同期速率相除，每次 fsync 约对应 2.99 次写、1.99 次 flush，含少量背景 I/O。
+结论与成立条件：三次基线 fsync 均值为 1.510 ms（`runs/t0-fsync/fsync-bench.log`），推算 662.25 TPS；W1 最大成功吞吐 668.4 TPS，比这一推算高约 0.93%。三次基线各自的推算值本身就在 654～678 次/秒之间（±1.8%），W1 自己的 fsync 均值 1.45686 ms 又反算出 686.41 次/秒（668.4 为其 97.4%），所以 W1 达到的是单写者串行 fsync 能力的 97%～101%，两者同一量级；1% 量级的差（无论正负）不足以说明超过了磁盘上限。该阶段进程占 0.07293 核、服务核忙 8.3%，可用内存至少 1196.57 MiB、换入为零；整机 iowait 42.275%、磁盘队列 0.99615、util 93.475%。继续加压时 fsync 速率仍在约 669～672/s，而超时和在途队列激增，说明串行持久化路径饱和，不是 CPU 或内存不足。应用 fsync 均值 1.45686 ms 包含文件系统日志、系统调用及完成后的调度，块写 await 0.471244 ms、flush await 0.0404294 ms 只计各自块请求；两者不能相加代替一次 fsync。用同期速率相除，每次 fsync 约对应 2.99 次写、1.99 次 flush，含少量背景 I/O。
 
 W2 在 util 93.815% 时成功吞吐为 W1 的 4.01 倍，说明高 util 不等于任意提交方式都达到吞吐硬上限。组提交批量随负载从 1.11285 增至 4.20844；最低共同负载 269 RPS 时 p99 仅从 7.77 降至 6.73 ms，收益有限。旧报告预测在 673 RPS 下约 670 TPS、批量 1～2，实测 671.6、1.4312 相符，p99 的 10～50 ms 预测偏保守，实测 7.20 ms；但测后提交不能独立证明预测已事前固化。原报告误引的 W1 第 6 阶段 1264 ms，以原始 CSV 的 389.23 ms 为准。
 
@@ -338,5 +342,8 @@ W2 在 util 93.815% 时成功吞吐为 W1 的 4.01 倍，说明高 util 不等�
 
 | GitHub 用户名 | 负责的部分 |
 |---|---|
+| Icecube2017 | 任务 0 基线 |
 | sugeladi2450 | 任务 1 指标流水线 |
+| Graham1019 | 任务 2 读路径、连接池与CPU上限 | 
+| Vollerei6 | 任务 3 写路径与磁盘 |
 | ConnorAnderson-coding | 任务4：四道分析、原始数据核验与复算脚本 |
